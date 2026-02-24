@@ -1,0 +1,35 @@
+<!--
+  Barra de navegación principal de la aplicación.
+  routerLink: navega a la ruta sin recargar la página (Single Page Application)
+  routerLinkActive: agrega la clase "active" cuando la ruta coincide
+-->
+<nav class="app-navbar">
+    <div class="nav-brand">
+        <i class="pi pi-shield"></i>
+        Garantías Comunitarias
+    </div>
+    <ul class="nav-links">
+        <li>
+            <a routerLink="/entidades" routerLinkActive="active">
+                <i class="pi pi-building"></i>
+                Entidades
+            </a>
+        </li>
+        <li>
+            <a routerLink="/contactos" routerLinkActive="active">
+                <i class="pi pi-users"></i>
+                Contactos
+            </a>
+        </li>
+    </ul>
+</nav>
+
+<!-- Contenedor principal con padding -->
+<main class="app-main">
+    <!--
+    router-outlet: aquí Angular renderiza el componente de la ruta activa.
+    Cuando navegas a /entidades, muestra EntidadesComponent.
+    Cuando navegas a /contactos, muestra ContactosComponent.
+  -->
+    <router-outlet />
+</main>

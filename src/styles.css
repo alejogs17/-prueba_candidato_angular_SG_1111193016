@@ -1,0 +1,39 @@
+/* You can add global styles to this file, and also import other style files */
+
+@import "primeng/resources/themes/lara-light-blue/theme.css";
+@import "primeng/resources/primeng.css";
+@import "primeicons/primeicons.css";
+@import "primeflex/primeflex.css";
+
+/* Reset básico */
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol");
+    background-color: #f8fafc;
+    color: #334155;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    margin: 0;
+    padding: 0;
+}
+
+/* Espaciado para modales */
+.p-dialog-content {
+    padding: 1.5rem !important;
+}
+
+/* Campos de formulario responsivos */
+.field {
+    margin-bottom: 1.5rem;
+}
+
+/* Arreglar botones del footer de dialogs */
+.p-dialog-footer {
+    padding: 1rem 1.5rem;
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}

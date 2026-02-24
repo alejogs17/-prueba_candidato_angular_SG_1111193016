@@ -1,0 +1,179 @@
+<p-toast />
+<p-confirmDialog />
+
+<p-card header="Gestión de Contactos">
+
+    <!-- TOOLBAR -->
+    <p-toolbar styleClass="mb-4 gap-2">
+        <ng-template pTemplate="left">
+            <p-button severity="success" label="Nuevo Contacto" icon="pi pi-plus" class="mr-2" (onClick)="openNew()" />
+
+            <p-button severity="danger" label="Eliminar" icon="pi pi-trash"
+                [badge]="selectedContactos.length > 0 ? selectedContactos.length.toString() : ''"
+                [disabled]="selectedContactos.length === 0" (onClick)="eliminarSeleccionados()" />
+        </ng-template>
+    </p-toolbar>
+
+    <!-- TABLA DE CONTACTOS -->
+    <p-table #dt [value]="contactosService.contactos()" [rows]="10" [paginator]="true"
+        [globalFilterFields]="['nombre', 'apellido', 'email', 'telefono', 'cargo']"
+        [tableStyle]="{ 'min-width': '75rem' }" [rowHover]="true" dataKey="id"
+        currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} contactos"
+        [showCurrentPageReport]="true" [loading]="contactosService.loading()" [(selection)]="selectedContactos">
+        <ng-template pTemplate="caption">
+            <div class="flex align-items-center justify-content-between">
+                <h5 class="m-0">Lista de contactos</h5>
+                <span class="p-input-icon-left">
+                    <i class="pi pi-search"></i>
+                    <input pInputText type="text"
+                        class="text-base text-color surface-overlay p-2 border-1 border-solid surface-border border-round appearance-none outline-none focus:border-primary w-full"
+                        placeholder="Buscar..." (input)="dt.filterGlobal($any($event.target).value, 'contains')" />
+                </span>
+            </div>
+        </ng-template>
+
+        <ng-template pTemplate="header">
+            <tr>
+                <th style="width: 4rem"><p-tableHeaderCheckbox /></th>
+                <th pSortableColumn="identificacion">Identificación <p-sortIcon field="identificacion" /></th>
+                <th pSortableColumn="nombre">Nombre <p-sortIcon field="nombre" /></th>
+                <th pSortableColumn="apellido">Apellido <p-sortIcon field="apellido" /></th>
+                <th pSortableColumn="email">Email <p-sortIcon field="email" /></th>
+                <th pSortableColumn="telefono">Teléfono <p-sortIcon field="telefono" /></th>
+                <th pSortableColumn="cargo">Cargo <p-sortIcon field="cargo" /></th>
+                <!-- Columna que muestra la entidad relacionada -->
+                <th>Entidad</th>
+                <th style="min-width:10rem">Opciones</th>
+            </tr>
+        </ng-template>
+
+        <ng-template pTemplate="body" let-contacto>
+            <tr>
+                <td><p-tableCheckbox [value]="contacto" /></td>
+                <td>{{ contacto.identificacion }}</td>
+                <td>{{ contacto.nombre }}</td>
+                <td>{{ contacto.apellido }}</td>
+                <td>{{ contacto.email }}</td>
+                <td>{{ contacto.telefono }}</td>
+                <td>{{ contacto.cargo }}</td>
+                <!-- Muestra el nombre de la entidad usando el helper getNombreEntidad() -->
+                <td>
+                    <span class="p-tag p-tag-info">
+                        {{ contacto.entidad?.nombre || getNombreEntidad(contacto.entidad_id) }}
+                    </span>
+                </td>
+                <td>
+                    <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" severity="success"
+                        pTooltip="Editar contacto" (onClick)="edit(contacto)" />
+                    <p-button icon="pi pi-trash" [rounded]="true" [outlined]="true" severity="danger"
+                        pTooltip="Eliminar contacto" (onClick)="eliminar(contacto)" />
+                </td>
+            </tr>
+        </ng-template>
+
+        <ng-template pTemplate="summary">
+            <div class="flex align-items-center justify-content-between">
+                Total: <strong>{{ total() }}</strong> contactos registrados.
+            </div>
+        </ng-template>
+    </p-table>
+
+</p-card>
+
+<!-- MODAL: CREAR / EDITAR CONTACTO -->
+<p-dialog [header]="contactoEnEdicion ? 'Editar Contacto' : 'Nuevo Contacto'" [(visible)]="mostrarModal" [modal]="true"
+    [style]="{ width: '550px' }" [draggable]="false" [resizable]="false" (onHide)="contactoForm.reset()">
+
+    <form [formGroup]="contactoForm" (ngSubmit)="guardar()">
+
+        <!-- Fila: Nombre y Apellido en dos columnas -->
+        <div class="grid">
+            <div class="field col-6 mb-3">
+                <label for="c-nombre" class="block mb-1 font-medium">Nombre *</label>
+                <input id="c-nombre" type="text" pInputText class="w-full" formControlName="nombre" placeholder="Nombre"
+                    [ngClass]="{ 'ng-invalid ng-dirty': tieneError('nombre') }" />
+                <small *ngIf="tieneError('nombre')" class="p-error block mt-1">
+                    {{ mensajeError('nombre') }}
+                </small>
+            </div>
+
+            <div class="field col-6 mb-3">
+                <label for="apellido" class="block mb-1 font-medium">Apellido *</label>
+                <input id="apellido" type="text" pInputText class="w-full" formControlName="apellido"
+                    placeholder="Apellido" [ngClass]="{ 'ng-invalid ng-dirty': tieneError('apellido') }" />
+                <small *ngIf="tieneError('apellido')" class="p-error block mt-1">
+                    {{ mensajeError('apellido') }}
+                </small>
+            </div>
+        </div>
+
+        <!-- Email -->
+        <div class="field mb-3">
+            <label for="c-email" class="block mb-1 font-medium">Email *</label>
+            <input id="c-email" type="email" pInputText class="w-full" formControlName="email"
+                placeholder="correo@ejemplo.com" [ngClass]="{ 'ng-invalid ng-dirty': tieneError('email') }" />
+            <small *ngIf="tieneError('email')" class="p-error block mt-1">
+                {{ mensajeError('email') }}
+            </small>
+        </div>
+
+        <!-- Teléfono -->
+        <div class="field mb-3">
+            <label for="c-telefono" class="block mb-1 font-medium">Teléfono *</label>
+            <input id="c-telefono" type="text" pInputText class="w-full" formControlName="telefono"
+                placeholder="Número de teléfono" [ngClass]="{ 'ng-invalid ng-dirty': tieneError('telefono') }" />
+            <small *ngIf="tieneError('telefono')" class="p-error block mt-1">
+                {{ mensajeError('telefono') }}
+            </small>
+        </div>
+
+        <!-- Cargo e Identificación -->
+        <div class="grid">
+            <div class="field col-6 mb-3">
+                <label for="cargo" class="block mb-1 font-medium">Cargo *</label>
+                <input id="cargo" type="text" pInputText class="w-full" formControlName="cargo"
+                    placeholder="Cargo del contacto" [ngClass]="{ 'ng-invalid ng-dirty': tieneError('cargo') }" />
+                <small *ngIf="tieneError('cargo')" class="p-error block mt-1">
+                    {{ mensajeError('cargo') }}
+                </small>
+            </div>
+            <div class="field col-6 mb-3">
+                <label for="identificacion" class="block mb-1 font-medium">Identificación *</label>
+                <input id="identificacion" type="text" pInputText class="w-full" formControlName="identificacion"
+                    placeholder="Documento de identidad"
+                    [ngClass]="{ 'ng-invalid ng-dirty': tieneError('identificacion') }" />
+                <small *ngIf="tieneError('identificacion')" class="p-error block mt-1">
+                    {{ mensajeError('identificacion') }}
+                </small>
+            </div>
+        </div>
+
+        <!--
+      SELECTOR DE ENTIDAD (Dropdown/Combo)
+      p-dropdown: componente de PrimeNG para listas desplegables
+      [options]: el array de opciones (las entidades cargadas del API)
+      optionLabel: qué propiedad mostrar como texto
+      optionValue: qué propiedad usar como valor (lo que se guarda en entidad_id)
+      filter: permite buscar dentro del dropdown
+    -->
+        <div class="field mb-3">
+            <label for="entidad_id" class="block mb-1 font-medium">Entidad *</label>
+            <p-dropdown id="entidad_id" formControlName="entidad_id" [options]="entidadesService.entidades()"
+                optionLabel="nombre" optionValue="id" placeholder="Selecciona una entidad" [filter]="true"
+                filterPlaceholder="Buscar entidad..." styleClass="w-full"
+                [ngClass]="{ 'ng-invalid ng-dirty': tieneError('entidad_id') }"
+                [loading]="entidadesService.loading()" />
+            <small *ngIf="tieneError('entidad_id')" class="p-error block mt-1">
+                {{ mensajeError('entidad_id') }}
+            </small>
+        </div>
+
+    </form>
+
+    <ng-template pTemplate="footer">
+        <p-button label="Cancelar" icon="pi pi-times" severity="secondary"
+            (onClick)="mostrarModal = false; contactoForm.reset()" />
+        <p-button [label]="contactoEnEdicion ? 'Actualizar' : 'Guardar'" icon="pi pi-check" (onClick)="guardar()" />
+    </ng-template>
+
+</p-dialog>

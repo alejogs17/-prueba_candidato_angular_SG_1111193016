@@ -1,0 +1,185 @@
+<!-- p-toast: Muestra los mensajes de notificación (éxito, error, advertencia) -->
+<p-toast />
+
+<!-- p-confirmDialog: Muestra el diálogo de confirmación antes de eliminar -->
+<p-confirmDialog />
+
+<p-card header="Gestión de Entidades">
+
+    <!--  TOOLBAR (barra de herramientas)  -->
+    <p-toolbar styleClass="mb-4 gap-2">
+
+        <ng-template pTemplate="left">
+            <!-- Botón NUEVA ENTIDAD: llama a openNew() para abrir el modal vacío -->
+            <p-button severity="success" label="Nueva Entidad" icon="pi pi-plus" class="mr-2" (onClick)="openNew()" />
+
+            <!-- Botón ELIMINAR SELECCIONADAS: solo activo si hay algo seleccionado -->
+            <!-- [disabled] deshabilita el botón si no hay selección -->
+            <p-button severity="danger" label="Eliminar" icon="pi pi-trash"
+                [badge]="selectedEntidades.length > 0 ? selectedEntidades.length.toString() : ''"
+                [disabled]="selectedEntidades.length === 0" (onClick)="eliminarSeleccionadas()" />
+        </ng-template>
+
+        <ng-template pTemplate="right">
+            <!-- Aquí se pueden agregar más herramientas a la derecha del toolbar -->
+        </ng-template>
+
+    </p-toolbar>
+
+    <!--  TABLA DE ENTIDADES  -->
+    <p-table #dt [value]="entidadesService.entidades()" [rows]="10" [paginator]="true"
+        [globalFilterFields]="['nombre', 'nit', 'telefono', 'direccion', 'email']"
+        [tableStyle]="{ 'min-width': '75rem' }" [rowHover]="true" dataKey="id"
+        currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} entidades"
+        [showCurrentPageReport]="true" [loading]="entidadesService.loading()" [(selection)]="selectedEntidades">
+        <!-- Cabecera de la tabla con buscador -->
+        <ng-template pTemplate="caption">
+            <div class="flex align-items-center justify-content-between">
+                <h5 class="m-0">Lista de entidades</h5>
+                <!-- CORRECCIÓN: clase CSS arreglada (era "fietext-base", ahora "text-base") -->
+                <span class="p-input-icon-left">
+                    <i class="pi pi-search"></i>
+                    <input pInputText type="text"
+                        class="text-base text-color surface-overlay p-2 border-1 border-solid surface-border border-round appearance-none outline-none focus:border-primary w-full"
+                        placeholder="Buscar..." (input)="dt.filterGlobal($any($event.target).value, 'contains')" />
+                </span>
+            </div>
+        </ng-template>
+
+        <!-- Encabezados de columnas -->
+        <ng-template pTemplate="header">
+            <tr>
+                <!-- Checkbox para seleccionar TODAS las filas -->
+                <th style="width: 4rem">
+                    <p-tableHeaderCheckbox />
+                </th>
+                <th pSortableColumn="nombre" style="min-width:15rem">
+                    Nombre <p-sortIcon field="nombre" />
+                </th>
+                <th pSortableColumn="nit">
+                    NIT <p-sortIcon field="nit" />
+                </th>
+                <th pSortableColumn="telefono">
+                    Teléfono <p-sortIcon field="telefono" />
+                </th>
+                <th pSortableColumn="direccion" style="min-width:10rem">
+                    Dirección <p-sortIcon field="direccion" />
+                </th>
+                <th>Email</th>
+                <th style="min-width:10rem">Opciones</th>
+            </tr>
+        </ng-template>
+
+        <!-- Filas de datos -->
+        <ng-template pTemplate="body" let-entidad>
+            <tr>
+                <!-- Checkbox individual por fila -->
+                <td>
+                    <p-tableCheckbox [value]="entidad" />
+                </td>
+                <td>{{ entidad.nombre }}</td>
+                <td>{{ entidad.nit }}</td>
+                <td>{{ entidad.telefono }}</td>
+                <td>{{ entidad.direccion }}</td>
+                <td>{{ entidad.email }}</td>
+                <td>
+                    <!-- Botón EDITAR: abre el modal con los datos de esta entidad -->
+                    <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" severity="success"
+                        pTooltip="Editar entidad" (onClick)="edit(entidad)" />
+
+                    <!-- Botón ELIMINAR individual: pide confirmación antes de borrar -->
+                    <p-button icon="pi pi-trash" [rounded]="true" [outlined]="true" severity="danger"
+                        pTooltip="Eliminar entidad" (onClick)="eliminar(entidad)" />
+                </td>
+            </tr>
+        </ng-template>
+
+        <!-- Pie de la tabla con el total -->
+        <ng-template pTemplate="summary">
+            <div class="flex align-items-center justify-content-between">
+                Total: <strong>{{ total() }}</strong> entidades registradas.
+            </div>
+        </ng-template>
+
+    </p-table>
+
+</p-card>
+
+<!--  MODAL: CREAR / EDITAR ENTIDAD  -->
+<!--
+  p-dialog: Componente modal de PrimeNG
+  [visible]: controla si se muestra o no (ligado a mostrarModal)
+  (onHide): se ejecuta cuando el usuario cierra el modal con la X
+  [modal]="true": oscurece el fondo cuando el modal está abierto
+-->
+<p-dialog [header]="entidadEnEdicion ? 'Editar Entidad' : 'Nueva Entidad'" [(visible)]="mostrarModal" [modal]="true"
+    [style]="{ width: '500px' }" [draggable]="false" [resizable]="false" (onHide)="entidadForm.reset()">
+
+    <!-- FORMULARIO REACTIVO -->
+    <!-- [formGroup]="entidadForm" conecta el template con el FormGroup del componente -->
+    <form [formGroup]="entidadForm" (ngSubmit)="guardar()">
+
+        <!--  CAMPO: NOMBRE  -->
+        <div class="field mb-3">
+            <label for="nombre" class="block mb-1 font-medium">Nombre *</label>
+            <input id="nombre" type="text" pInputText class="w-full" formControlName="nombre"
+                placeholder="Nombre de la entidad" [ngClass]="{ 'ng-invalid ng-dirty': tieneError('nombre') }" />
+            <!-- Mensaje de error: solo se muestra si el campo es inválido Y fue tocado -->
+            <small *ngIf="tieneError('nombre')" class="p-error block mt-1">
+                {{ mensajeError('nombre') }}
+            </small>
+        </div>
+
+        <!--  CAMPO: NIT  -->
+        <div class="field mb-3">
+            <label for="nit" class="block mb-1 font-medium">NIT *</label>
+            <input id="nit" type="text" pInputText class="w-full" formControlName="nit" placeholder="NIT de la entidad"
+                [ngClass]="{ 'ng-invalid ng-dirty': tieneError('nit') }" />
+            <small *ngIf="tieneError('nit')" class="p-error block mt-1">
+                {{ mensajeError('nit') }}
+            </small>
+        </div>
+
+        <!--  CAMPO: TELÉFONO  -->
+        <div class="field mb-3">
+            <label for="telefono" class="block mb-1 font-medium">Teléfono *</label>
+            <input id="telefono" type="text" pInputText class="w-full" formControlName="telefono"
+                placeholder="Número de teléfono" [ngClass]="{ 'ng-invalid ng-dirty': tieneError('telefono') }" />
+            <small *ngIf="tieneError('telefono')" class="p-error block mt-1">
+                {{ mensajeError('telefono') }}
+            </small>
+        </div>
+
+        <!--  CAMPO: DIRECCIÓN  -->
+        <div class="field mb-3">
+            <label for="direccion" class="block mb-1 font-medium">Dirección *</label>
+            <input id="direccion" type="text" pInputText class="w-full" formControlName="direccion"
+                placeholder="Dirección de la entidad" [ngClass]="{ 'ng-invalid ng-dirty': tieneError('direccion') }" />
+            <small *ngIf="tieneError('direccion')" class="p-error block mt-1">
+                {{ mensajeError('direccion') }}
+            </small>
+        </div>
+
+        <!--  CAMPO: EMAIL  -->
+        <div class="field mb-3">
+            <label for="email" class="block mb-1 font-medium">Email *</label>
+            <input id="email" type="email" pInputText class="w-full" formControlName="email"
+                placeholder="correo@ejemplo.com" [ngClass]="{ 'ng-invalid ng-dirty': tieneError('email') }" />
+            <small *ngIf="tieneError('email')" class="p-error block mt-1">
+                {{ mensajeError('email') }}
+            </small>
+        </div>
+
+    </form>
+
+    <!-- Botones del modal en el footer -->
+    <ng-template pTemplate="footer">
+        <!-- Botón CANCELAR: cierra el modal sin guardar -->
+        <p-button label="Cancelar" icon="pi pi-times" severity="secondary"
+            (onClick)="mostrarModal = false; entidadForm.reset()" />
+
+        <!-- Botón GUARDAR: llama a guardar() que valida y envía el formulario -->
+        <p-button [label]="entidadEnEdicion ? 'Actualizar' : 'Guardar'" icon="pi pi-check" (onClick)="guardar()" />
+    </ng-template>
+
+</p-dialog>
